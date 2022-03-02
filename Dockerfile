@@ -1,9 +1,14 @@
 FROM debian:latest
 
-RUN apt-get update -y
-RUN apt-get upgrade -y
+ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get install build-essential cmake git libcap-dev pkg-config automake libtool libuv1-dev libsodium-dev libzmq3-dev libcurl4-openssl-dev libevent-dev nettle-dev libunbound-dev libsqlite3-dev libssl-dev libcap2-bin -y
+RUN apt update \
+  && apt -y dist-upgrade \
+  && apt -y install build-essential cmake git libcap-dev pkg-config automake libtool libuv1-dev libsodium-dev libzmq3-dev libcurl4-openssl-dev libevent-dev nettle-dev libunbound-dev libsqlite3-dev libssl-dev libcap2-bin dialog golang screen
+
+RUN go get -u github.com/majestrate/fedproxy \
+  && cp /root/go/bin/fedproxy /usr/local/bin/
+
 RUN git clone --recursive https://github.com/oxen-io/lokinet
 WORKDIR /lokinet
 RUN mkdir build
