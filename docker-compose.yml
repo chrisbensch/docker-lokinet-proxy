@@ -4,7 +4,6 @@ services:
     container_name: lokinet-proxy
     image: chrisbensch/docker-lokinet-proxy
     privileged: true
-    restart: always
     ports:
       - '2000:2000'
-    
+    restart: always
