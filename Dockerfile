@@ -1,30 +1,33 @@
-FROM debian:latest
+FROM debian:stable AS lokinet-base
+ENV container docker
+# set up packages
+RUN /bin/bash -c 'echo "man-db man-db/auto-update boolean false" | debconf-set-selections'
+RUN /bin/bash -c 'apt-get -o=Dpkg::Use-Pty=0 -q update && apt-get -o=Dpkg::Use-Pty=0 -q dist-upgrade -y && apt-get -o=Dpkg::Use-Pty=0 -q install -y --no-install-recommends ca-certificates curl iptables dnsutils lsb-release systemd systemd-sysv cron conntrack iproute2 python3-pip wget git golang'
+RUN /bin/bash -c 'curl -so /etc/apt/trusted.gpg.d/lokinet.gpg https://deb.oxen.io/pub.gpg'
+RUN /bin/bash -c 'echo "deb https://deb.oxen.io $(lsb_release -sc) main" > /etc/apt/sources.list.d/lokinet.list'
+RUN /bin/bash -c 'apt-get -o=Dpkg::Use-Pty=0 -q update && apt-get -o=Dpkg::Use-Pty=0 -q dist-upgrade -y && apt-get -o=Dpkg::Use-Pty=0 -q install -y --no-install-recommends lokinet'
 
-ARG DEBIAN_FRONTEND=noninteractive
+# make config dir for lokinet
+RUN /bin/bash -c 'mkdir -p /var/lib/lokinet/conf.d'
+# set up private data dir for lokinet
+RUN /bin/bash -c 'mkdir /data && chown _lokinet:_loki /data'
 
-RUN apt update \
-  && apt -y dist-upgrade \
-  && apt -y install build-essential cmake git libcap-dev pkg-config automake libtool libuv1-dev libsodium-dev libzmq3-dev libcurl4-openssl-dev libevent-dev nettle-dev libunbound-dev libsqlite3-dev libssl-dev libcap2-bin dialog golang screen
+# print lokinet util
+COPY print-lokinet-address.sh /usr/local/bin/print-lokinet-address.sh
+RUN /bin/bash -c 'chmod 700 /usr/local/bin/print-lokinet-address.sh'
 
-RUN go get -u github.com/majestrate/fedproxy \
-  && cp /root/go/bin/fedproxy /usr/local/bin/
+# dns
+COPY lokinet.resolveconf.txt /etc/resolv.conf
+RUN /bin/bash -c 'chmod 644 /etc/resolv.conf'
 
-RUN git clone --recursive https://github.com/oxen-io/lokinet
-WORKDIR /lokinet
-RUN mkdir build
-WORKDIR /lokinet/build
+# Add fedproxy to make a proxy for Lokinet
+RUN go get -u github.com/majestrate/fedproxy && \
+  cp /root/go/bin/fedproxy /usr/local/bin/
 
-RUN cmake .. -DBUILD_STATIC_DEPS=OFF -DBUILD_SHARED_LIBS=ON -DSTATIC_LINK=OFF
-RUN make -j$(nproc)
+COPY start.sh /usr/local/bin/start-new.sh
+RUN chmod +x /usr/local/bin/start-new.sh
 
-WORKDIR /lokinet/build/daemon
-RUN chmod +x lokinet lokinet-bootstrap lokinet-vpn
-RUN mkdir /var/lib/lokinet
-COPY lokinet.ini /var/lib/lokinet/lokinet.ini
 
-RUN /lokinet/build/daemon/lokinet-bootstrap
-
-COPY start.sh /lokinet/build/daemon/start.sh
-RUN chmod +x start.sh
-
-ENTRYPOINT ["/lokinet/build/daemon/start.sh"]
+STOPSIGNAL SIGRTMIN+3
+#ENTRYPOINT ["/sbin/init", "verbose", "systemd.unified_cgroup_hierarchy=0", "systemd.legacy_systemd_cgroup_controller=0"]
+ENTRYPOINT ["/usr/local/bin/start-new.sh"]
