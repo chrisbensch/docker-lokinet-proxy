@@ -1,4 +1,4 @@
-FROM debian:stable AS lokinet-base
+FROM debian:stable-slim
 ENV container docker
 # set up packages
 RUN /bin/bash -c 'echo "man-db man-db/auto-update boolean false" | debconf-set-selections'
@@ -23,6 +23,8 @@ RUN /bin/bash -c 'chmod 644 /etc/resolv.conf'
 # Add fedproxy to make a proxy for Lokinet
 RUN go get -u github.com/majestrate/fedproxy && \
   cp /root/go/bin/fedproxy /usr/local/bin/
+
+#RUN which lokinet
 
 COPY start.sh /usr/local/bin/start-new.sh
 RUN chmod +x /usr/local/bin/start-new.sh

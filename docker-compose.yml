@@ -2,7 +2,7 @@ version: "3"
 services:
   lokinet-proxy:
     container_name: lokinet-proxy
-    image: chrisbensch/docker-lokinet-proxy:testing
+    image: chrisbensch/docker-lokinet-proxy:latest
     privileged: true
     ports:
       - '2000:2000'
