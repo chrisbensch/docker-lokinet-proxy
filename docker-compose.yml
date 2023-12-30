@@ -1,9 +1,11 @@
 version: "3"
 services:
   lokinet-proxy:
-    container_name: lokinet-proxy
+    container_name: lokinet-proxy-single
     image: chrisbensch/docker-lokinet-proxy:latest
-    privileged: true
+    #privileged: true
+    cap_add:
+      - NET_ADMIN
     ports:
       - '2000:2000'
     restart: always
